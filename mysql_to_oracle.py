@@ -1,5 +1,6 @@
 #coding:utf-8
 import pymysql,re 
+  
 
 
 db= pymysql.connect(host="localhost",user="root",  
@@ -13,6 +14,7 @@ table_sql='show tables'
 cur=db.cursor() 
 cur.execute(table_sql)
 tables_data=cur.fetchall()
+#tables_data=['china_bank_pay']
 for table in tables_data:
     #获取表名
     table=list(table)[0]
@@ -31,7 +33,7 @@ for table in tables_data:
             'mediumint': 'NUMBER', 'mediumtext': 'CLOB', 'numeric': 'NUMBER', 'real': 'FLOAT', 
             'set': 'VARCHAR2', 'smallint': 'NUMBER', 'text': 'CLOB', 'time': 'DATE', 
             'timestamp': 'DATE', 'tinyblob': 'RAW', 'tinyint': 'NUMBER', 'tinytext': 'VARCHAR2', 
-            'varchar': 'VARCHAR2', 'year': 'NUMBER'}
+            'varchar': 'VARCHAR2', 'year': 'NUMBER','binary':'VARCHAR2'}
     #oracle所有关键字，避免mysql表字段用到了这些关键字，报错
     keyword=['ACCESS','ADD','ALL','ALTER','AND','ANY','AS','ASC','AUDIT','BETWEEN','BY','CHAR','CHECK',
              'CLUSTER','COLUMN','COMMENT','COMPRESS','CONNECT','CREATE','CURRENT','DATE','DECIMAL','DEFAULT',
@@ -54,16 +56,9 @@ for table in tables_data:
     #func=lambda x,y:re.sub('(\d+)',re.match('(\d+)',x).group(1)*3,x) if y=='varchar' else x
     #func=lambda x,y:re.sub('(\d+)',re.match('(\d+)',x).group(1)*3,x) if y=='varchar' else x
     #传入替换后的oracle字符类型和mysql处理后的字符类型
-    #mysql的varchar是字符，oracle是字节，考虑中文情况，乘以三。如果乘以3大于4000，则取4000
     #mysql数值类型无校验，例如bigint最大为20，但是可以在建表写64，所以这里处理了超长的数值类型字段
     def func1(x,y):
-        if y=='varchar':
-            #print(y,x,re.findall('\((.*?)\)',x)[0])
-            if int(re.findall('\((.*?)\)',x)[0])*3<=4000:
-                return re.sub('\((.*?)\)','('+str(int(re.findall('\((.*?)\)',x)[0])*3)+')',x).replace('unsigned','')
-            else:
-                return re.sub('\((.*?)\)','('+str(4000)+')',x).replace('unsigned','')
-        elif y in ('bigint','int','tinyint','smallint','year','mediumint','integer','double','decimal','decimal') and int(re.findall('\((.*?)\)',x)[0].split(',')[0])>38:
+        if y in ('bigint','int','tinyint','smallint','year','mediumint','integer','double','decimal','decimal') and int(re.findall('\((.*?)\)',x)[0].split(',')[0])>38:
             return re.sub('\((.*?)\)','('+str(38)+')',x).replace('unsigned','')
         else:
             return x.replace('unsigned','')
@@ -123,6 +118,3 @@ for table in tables_data:
         if v[0]!='PRIMARY':
             print('create index %s.idx_%s_%s  on %s (%s);' %(target_user,table[1:20],k,table,','.join(v[1])))
     print('--%s表建表语句结束' % table)
-
-
-
